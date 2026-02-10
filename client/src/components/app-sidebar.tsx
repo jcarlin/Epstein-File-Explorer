@@ -89,8 +89,18 @@ export function AppSidebar() {
             <ExternalLink className="w-3 h-3" />
             <span>DOJ Epstein Library</span>
           </a>
+          <a
+            href="https://github.com/yung-megafone/Epstein-Files"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 hover-elevate rounded-md p-1.5"
+            data-testid="link-community-archive"
+          >
+            <ExternalLink className="w-3 h-3" />
+            <span>Community Archive</span>
+          </a>
           <p className="leading-relaxed px-1.5">
-            All information sourced from publicly released government records.
+            Data sourced from publicly released DOJ records. Preserved and distributed by the open-source community.
           </p>
         </div>
       </SidebarFooter>
