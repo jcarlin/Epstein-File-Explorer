@@ -205,13 +205,17 @@ function walkDir(dir: string): string[] {
   const results: string[] = [];
   if (!fs.existsSync(dir)) return results;
 
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...walkDir(fullPath));
-    } else if (entry.isFile()) {
-      results.push(fullPath);
+  const stack = [dir];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.isFile()) {
+        results.push(fullPath);
+      }
     }
   }
   return results;
@@ -271,15 +275,23 @@ async function downloadViaMagnets(
   const toDownload = configs.filter((c) => {
     const hash = extractInfoHash(c.config.magnetUri);
     const state = progress.dataSets[hash];
-    if (
-      state &&
-      state.status !== "downloading" &&
-      state.status !== "failed"
-    ) {
-      console.log(`  Skipping ${c.key}: already ${state.status}`);
-      return false;
+    if (!state || state.status === "downloading") return true;
+    if (state.status === "failed") {
+      // Only re-download if the failure was during the download itself.
+      // Post-download failures (extraction/normalization) mean files are on disk.
+      const isPostDownload =
+        state.error?.startsWith("Extraction:") ||
+        state.error?.startsWith("Normalization:");
+      if (isPostDownload) {
+        console.log(`  Skipping download for ${c.key}: already downloaded (failed during later stage)`);
+        state.status = "downloaded";
+        saveProgress(progress);
+        return false;
+      }
+      return true;
     }
-    return true;
+    console.log(`  Skipping ${c.key}: already ${state.status}`);
+    return false;
   });
 
   if (toDownload.length === 0) {
@@ -721,6 +733,23 @@ export async function downloadTorrents(options?: {
   }
   console.log("");
 
+  // Pre-check: if a torrent is marked "failed" but staging files exist on disk,
+  // the download succeeded and a later stage (extraction/normalization) failed.
+  // Reset to "downloaded" so we skip re-downloading and retry extraction.
+  for (const { key, config } of torrentsToProcess) {
+    const hash = extractInfoHash(config.magnetUri);
+    const state = progress.dataSets[hash];
+    if (state?.status === "failed") {
+      const dsDir = path.join(stagingDir, key);
+      if (fs.existsSync(dsDir) && fs.readdirSync(dsDir).length > 0) {
+        console.log(`  ${key}: staging files found — resetting to "downloaded" for re-extraction`);
+        state.status = "downloaded";
+        state.error = undefined;
+        saveProgress(progress);
+      }
+    }
+  }
+
   // Phase 1: Download all torrents via aria2c
   console.log("Phase 1: Downloading via aria2c...\n");
   try {
@@ -752,7 +781,11 @@ export async function downloadTorrents(options?: {
       extractLimit(async () => {
         const hash = extractInfoHash(config.magnetUri);
         const state = progress.dataSets[hash];
-        if (!state || state.status === "failed") {
+        if (!state) {
+          console.log(`  Skipping extraction for ${key}: no progress entry`);
+          return null;
+        }
+        if (state.status === "failed" && !state.error?.startsWith("Extraction:") && !state.error?.startsWith("Normalization:")) {
           console.log(`  Skipping extraction for ${key}: download failed`);
           return null;
         }
