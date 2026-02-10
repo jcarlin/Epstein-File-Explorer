@@ -67,16 +67,11 @@ function rateLimit(
   };
 }
 
-// General API: 300 requests per minute per IP
-app.use("/api", rateLimit(60_000, 300, "api"));
-
-// Stricter limits on expensive/sensitive endpoints
-// AI chat: 10 requests per minute (when re-enabled)
-app.use("/api/chat", rateLimit(60_000, 10, "chat"));
-// Exports: 10 per minute (reinforces existing per-route limiter)
+// Rate limits only on expensive/sensitive endpoints (not general reads)
+// AI chat: 20 requests per minute
+app.use("/api/chat", rateLimit(60_000, 20, "chat"));
+// Exports: 10 per minute
 app.use("/api/export", rateLimit(60_000, 10, "export"));
-// Search: 30 per minute
-app.use("/api/search", rateLimit(60_000, 30, "search"));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
