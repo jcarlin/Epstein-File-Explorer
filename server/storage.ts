@@ -437,12 +437,17 @@ const networkDataCache = createCache<{
   personYears: Record<number, [number, number]>;
 }>(5 * 60 * 1000);
 
+const personsCache = createCache<Person[]>(5 * 60 * 1000);
+const timelineEventsCache = createCache<TimelineEvent[]>(5 * 60 * 1000);
+
 const countCacheMap = new Map<string, { count: number; cachedAt: number }>();
 const COUNT_TTL = 60_000;
 
 export class DatabaseStorage implements IStorage {
   async getPersons(): Promise<Person[]> {
-    return db.select().from(persons).orderBy(desc(persons.documentCount));
+    return personsCache.get(() =>
+      db.select().from(persons).orderBy(desc(persons.documentCount))
+    );
   }
 
   async getPerson(id: number): Promise<Person | undefined> {
@@ -580,9 +585,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimelineEvents(): Promise<TimelineEvent[]> {
-    return db.select().from(timelineEvents)
-      .where(sql`${timelineEvents.date} >= '1950' AND ${timelineEvents.significance} >= 3`)
-      .orderBy(asc(timelineEvents.date));
+    return timelineEventsCache.get(() =>
+      db.select().from(timelineEvents)
+        .where(sql`${timelineEvents.date} >= '1950' AND ${timelineEvents.significance} >= 3`)
+        .orderBy(asc(timelineEvents.date))
+    );
   }
 
   async createTimelineEvent(event: InsertTimelineEvent): Promise<TimelineEvent> {

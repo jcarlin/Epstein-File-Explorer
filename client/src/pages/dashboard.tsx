@@ -142,8 +142,8 @@ export default function Dashboard() {
     staleTime: 300_000,
   });
 
-  const { data: allPeople, isLoading: peopleLoading } = useQuery<Person[]>({
-    queryKey: ["/api/persons"],
+  const { data: peopleResult, isLoading: peopleLoading } = useQuery<{ data: Person[]; total: number; page: number; totalPages: number }>({
+    queryKey: ["/api/persons?page=1&limit=6"],
     staleTime: 300_000,
   });
 
@@ -157,7 +157,7 @@ export default function Dashboard() {
     staleTime: 300_000,
   });
 
-  const featuredPeople = allPeople?.slice(0, 6);
+  const featuredPeople = peopleResult?.data;
   const recentDocs = docsResult?.data;
   const events = allEvents?.filter(e => e.significance >= 3).slice(-4);
 
