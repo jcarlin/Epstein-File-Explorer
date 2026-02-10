@@ -253,15 +253,25 @@ export async function classifyAllDocuments(options: {
   for (const doc of docs) {
     // Derive filename from sourceUrl, localPath, or title
     const filename = deriveFilename(doc);
-    if (!filename) {
+
+    let mediaType: MediaType;
+    let mimeType: string;
+
+    if (filename) {
+      // Try to find local file for magic byte detection
+      const localFilePath = resolveLocalPath(doc, baseDir);
+      const classified = classifyFile(filename, localFilePath);
+      mediaType = classified.mediaType;
+      mimeType = classified.mimeType;
+    } else if (doc.documentType && DOCUMENT_TYPE_TO_MEDIA_TYPE[doc.documentType]) {
+      // Fallback: derive media_type from document_type
+      mediaType = DOCUMENT_TYPE_TO_MEDIA_TYPE[doc.documentType];
+      mimeType = "application/octet-stream";
+    } else {
       result.skipped++;
       continue;
     }
 
-    // Try to find local file for magic byte detection
-    const localFilePath = resolveLocalPath(doc, baseDir);
-
-    const { mediaType, mimeType } = classifyFile(filename, localFilePath);
     const priority = getAIPriority(doc.dataSet, doc.fileSizeBytes, mediaType);
     const aiStatus = deriveAiAnalysisStatus(priority, mediaType);
 
@@ -293,6 +303,27 @@ export async function classifyAllDocuments(options: {
 
   return result;
 }
+
+// Map document_type to media_type as a fallback when file-based detection isn't possible
+const DOCUMENT_TYPE_TO_MEDIA_TYPE: Record<string, MediaType> = {
+  photograph: "image",
+  video: "video",
+  email: "email",
+  "flight log": "pdf",
+  "court filing": "pdf",
+  "fbi report": "pdf",
+  deposition: "pdf",
+  "financial record": "spreadsheet",
+  correspondence: "pdf",
+  "grand jury transcript": "pdf",
+  "government record": "pdf",
+  "police report": "pdf",
+  "search warrant": "pdf",
+  "witness statement": "pdf",
+  "news article": "pdf",
+  "travel record": "pdf",
+  "property record": "pdf",
+};
 
 function deriveFilename(doc: { sourceUrl: string | null; localPath: string | null; title: string }): string | null {
   if (doc.localPath) {

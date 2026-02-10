@@ -807,8 +807,8 @@ export class DatabaseStorage implements IStorage {
 
       // Media counts
       db.select({
-        images: sql<number>`count(*) filter (where ${documents.mediaType} = 'image')::int`,
-        videos: sql<number>`count(*) filter (where ${documents.mediaType} = 'video')::int`,
+        images: sql<number>`count(*) filter (where ${documents.documentType} = 'photograph')::int`,
+        videos: sql<number>`count(*) filter (where ${documents.documentType} = 'video')::int`,
       }).from(documents),
 
       // Entity counts

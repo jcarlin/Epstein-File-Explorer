@@ -139,8 +139,8 @@ export function AppSidebar() {
   ];
 
   const mediaItems: NavItem[] = [
-    { title: "Photos", url: "/documents?mediaType=image", icon: Image, count: counts?.media.images },
-    { title: "Videos", url: "/documents?mediaType=video", icon: Video, count: counts?.media.videos },
+    { title: "Photos", url: "/documents?type=photograph", icon: Image, count: counts?.media.images },
+    { title: "Videos", url: "/documents?type=video", icon: Video, count: counts?.media.videos },
   ];
 
   const investigationItems: NavItem[] = [

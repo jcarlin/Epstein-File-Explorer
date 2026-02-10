@@ -1,13 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearch } from "wouter";
 
 type FilterConfig = Record<string, string>;
 
 /**
  * Syncs filter state with URL search params.
  * On mount, reads initial values from URL. On change, updates URL via replaceState.
+ * Reacts to wouter navigation (pushState) via useSearch().
  */
 export function useUrlFilters<T extends FilterConfig>(defaults: T): [T, (key: keyof T, value: string) => void, () => void] {
   const defaultsRef = useRef(defaults);
+  const search = useSearch();
 
   const readFromUrl = useCallback((): T => {
     const params = new URLSearchParams(window.location.search);
@@ -30,8 +33,8 @@ export function useUrlFilters<T extends FilterConfig>(defaults: T): [T, (key: ke
         params.set(key, value);
       }
     }
-    const search = params.toString();
-    const newUrl = window.location.pathname + (search ? `?${search}` : "");
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? `?${qs}` : "");
     window.history.replaceState(null, "", newUrl);
   }, []);
 
@@ -49,17 +52,10 @@ export function useUrlFilters<T extends FilterConfig>(defaults: T): [T, (key: ke
     writeToUrl(next);
   }, [writeToUrl]);
 
-  // Read from URL on mount and listen for browser back/forward
+  // Re-read URL when wouter navigates (pushState) or browser back/forward (popstate)
   useEffect(() => {
     setFilters(readFromUrl());
-
-    function onPopState() {
-      setFilters(readFromUrl());
-    }
-
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [readFromUrl]);
+  }, [search, readFromUrl]);
 
   return [filters, setFilter, resetFilters];
 }
