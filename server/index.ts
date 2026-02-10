@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -100,7 +101,8 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const snippet = JSON.stringify(capturedJsonResponse);
+        logLine += ` :: ${snippet.length > 200 ? snippet.slice(0, 200) + '…' : snippet}`;
       }
 
       log(logLine);
@@ -154,6 +156,17 @@ app.use((req, res, next) => {
         )
         .then(() => log("Database seeding complete"))
         .catch((err) => log(`Database seeding skipped: ${err.message}`));
+
+      // Pre-warm expensive caches so first user gets fast responses
+      Promise.all([
+        storage.getStats(),
+        storage.getSidebarCounts(),
+        storage.getDocumentFilters(),
+        storage.getPersons(),
+        storage.getTimelineEvents(),
+      ])
+        .then(() => log("Cache pre-warming complete"))
+        .catch((err) => log(`Cache pre-warming failed: ${err.message}`));
     },
   );
 })();

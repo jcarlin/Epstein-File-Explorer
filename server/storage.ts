@@ -784,23 +784,29 @@ export class DatabaseStorage implements IStorage {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const cacheKey = JSON.stringify([opts.search, opts.type, opts.dataSet, opts.redacted, opts.mediaType]);
-    const cached = countCacheMap.get(cacheKey);
+    // For unfiltered queries, use the cached stats total to avoid COUNT(*) on 1.38M rows
     let total: number;
-    if (cached && Date.now() - cached.cachedAt < COUNT_TTL) {
-      total = cached.count;
+    if (conditions.length === 0) {
+      const stats = await this.getStats();
+      total = stats.documentCount;
     } else {
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(documents)
-        .where(whereClause);
-      total = countResult.count;
-      countCacheMap.set(cacheKey, { count: total, cachedAt: Date.now() });
-      if (countCacheMap.size > 200) {
-        const now = Date.now();
-        countCacheMap.forEach((v, k) => {
-          if (now - v.cachedAt > COUNT_TTL) countCacheMap.delete(k);
-        });
+      const cacheKey = JSON.stringify([opts.search, opts.type, opts.dataSet, opts.redacted, opts.mediaType]);
+      const cached = countCacheMap.get(cacheKey);
+      if (cached && Date.now() - cached.cachedAt < COUNT_TTL) {
+        total = cached.count;
+      } else {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(documents)
+          .where(whereClause);
+        total = countResult.count;
+        countCacheMap.set(cacheKey, { count: total, cachedAt: Date.now() });
+        if (countCacheMap.size > 200) {
+          const now = Date.now();
+          countCacheMap.forEach((v, k) => {
+            if (now - v.cachedAt > COUNT_TTL) countCacheMap.delete(k);
+          });
+        }
       }
     }
     const totalPages = Math.ceil(total / opts.limit);
