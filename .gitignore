@@ -14,6 +14,8 @@ data/connection-classifications.json
 data/doj-catalog.json
 data/download-progress.json
 data/extraction-log.json
+data/torrent-progress.json
+data/torrent-staging/**
 data/media-classification.json
 data/persons-raw.json
 tmp/**

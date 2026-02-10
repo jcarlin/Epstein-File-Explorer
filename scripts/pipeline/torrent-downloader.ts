@@ -54,7 +54,6 @@ interface TorrentConfig {
   format: "zip" | "tar.zst";
   expectedSizeGB: number;
   description: string;
-  containedDataSets?: number[];
 }
 
 interface TorrentProgressState {
@@ -91,7 +90,63 @@ export interface TorrentResult {
 // Magnet link config — sourced from github.com/yung-megafone/Epstein-Files
 // ---------------------------------------------------------------------------
 
-const TORRENT_CONFIG: Record<number | "full", TorrentConfig> = {
+const TORRENT_CONFIG: Record<number, TorrentConfig> = {
+  1: {
+    magnetUri:
+      "magnet:?xt=urn:btih:6bfa388c07dc787e3bbd91df6f4c7c4638a7dc0f&dn=DataSet%201&xl=1327457599&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 1.23,
+    description: "DS 1 — Court documents, legal filings",
+  },
+  2: {
+    magnetUri:
+      "magnet:?xt=urn:btih:d3ec6b3ea50ddbcf8b6f404f419adc584964418a&dn=DataSet%202&xl=662334369&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.63,
+    description: "DS 2 — Court documents, legal filings",
+  },
+  3: {
+    magnetUri:
+      "magnet:?xt=urn:btih:27704fe736090510aa9f314f5854691d905d1ff3&dn=DataSet%203&xl=628519331&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.60,
+    description: "DS 3 — Court documents, legal filings",
+  },
+  4: {
+    magnetUri:
+      "magnet:?xt=urn:btih:4be48044be0e10f719d0de341b7a47ea3e8c3c1a&dn=DataSet%204&xl=375905556&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.36,
+    description: "DS 4 — Court documents, legal filings",
+  },
+  5: {
+    magnetUri:
+      "magnet:?xt=urn:btih:1deb0669aca054c313493d5f3bf48eed89907470&dn=DataSet%205&xl=64579973&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.06,
+    description: "DS 5 — Court documents, legal filings",
+  },
+  6: {
+    magnetUri:
+      "magnet:?xt=urn:btih:05e7b8aefd91cefcbe28a8788d3ad4a0db47d5e2&dn=DataSet%206&xl=55600717&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.05,
+    description: "DS 6 — Court documents, legal filings",
+  },
+  7: {
+    magnetUri:
+      "magnet:?xt=urn:btih:bcd8ec2e697b446661921a729b8c92b689df0360&dn=DataSet%207&xl=103060624&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.10,
+    description: "DS 7 — Court documents, legal filings",
+  },
+  8: {
+    magnetUri:
+      "magnet:?xt=urn:btih:c3a522d6810ee717a2c7e2ef705163e297d34b72&dn=DataSet%208&xl=11465535175&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.moeking.me%3A6969%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 10.67,
+    description: "DS 8 — Court documents, legal filings",
+  },
   9: {
     magnetUri:
       "magnet:?xt=urn:btih:7ac8f771678d19c75a26ea6c14e7d4c003fbf9b6&dn=dataset9-more-complete.tar.zst",
@@ -113,18 +168,14 @@ const TORRENT_CONFIG: Record<number | "full", TorrentConfig> = {
     expectedSizeGB: 25.5,
     description: "DS 11 — Financial ledgers, flight manifests",
   },
-  full: {
+  12: {
     magnetUri:
-      "magnet:?xt=urn:btih:f5cbe5026b1f86617c520d0a9cd610d6254cbe85&dn=epstein-files-structured-full-20250204.tar.zst&xl=221393230690",
-    format: "tar.zst",
-    expectedSizeGB: 206.18,
-    description: "Full composite archive — All data sets 1-12",
-    containedDataSets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "magnet:?xt=urn:btih:ee6d2ce5b222b028173e4dedc6f74f08afbbb7a3&dn=DataSet%2012.zip&xl=119634859&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce",
+    format: "zip",
+    expectedSizeGB: 0.11,
+    description: "DS 12 — Court documents, legal filings",
   },
 };
-
-// Data sets that have individual magnets
-const INDIVIDUAL_TORRENT_DS = new Set([9, 10, 11]);
 
 // ---------------------------------------------------------------------------
 // Utility functions
@@ -620,41 +671,18 @@ export async function downloadTorrents(options?: {
   const torrentsToProcess: { key: string; config: TorrentConfig; dsId: number | null }[] = [];
   let needsZstd = false;
 
-  if (!dataSetIds || dataSetIds.length === 0) {
-    // Download all via the full composite archive (contains DS 1-12, ~206 GB)
-    torrentsToProcess.push({
-      key: "full",
-      config: TORRENT_CONFIG.full,
-      dsId: null,
-    });
-    needsZstd = true; // full archive is tar.zst
-  } else {
-    // Check which individual torrents we have, which need composite
-    const needComposite: number[] = [];
+  const idsToDownload = dataSetIds && dataSetIds.length > 0
+    ? dataSetIds
+    : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-    for (const dsId of dataSetIds) {
-      if (INDIVIDUAL_TORRENT_DS.has(dsId)) {
-        const cfg = TORRENT_CONFIG[dsId as 9 | 10 | 11];
-        torrentsToProcess.push({ key: `ds-${dsId}`, config: cfg, dsId });
-        if (cfg.format === "tar.zst") needsZstd = true;
-      } else if (dsId >= 1 && dsId <= 12) {
-        needComposite.push(dsId);
-      } else {
-        console.warn(`  Unknown data set ID: ${dsId} — skipping`);
-      }
+  for (const dsId of idsToDownload) {
+    const cfg = TORRENT_CONFIG[dsId];
+    if (!cfg) {
+      console.warn(`  Unknown data set ID: ${dsId} — skipping`);
+      continue;
     }
-
-    if (needComposite.length > 0) {
-      console.log(
-        `  Data sets ${needComposite.join(", ")} require the full composite archive torrent`,
-      );
-      torrentsToProcess.push({
-        key: "full",
-        config: TORRENT_CONFIG.full,
-        dsId: null,
-      });
-      needsZstd = true;
-    }
+    torrentsToProcess.push({ key: `ds-${dsId}`, config: cfg, dsId });
+    if (cfg.format === "tar.zst") needsZstd = true;
   }
 
   // Check zstd if needed
@@ -785,6 +813,26 @@ export async function downloadTorrents(options?: {
   }
 
   saveProgress(progress);
+
+  // Phase 4: Clean up staging directories for completed torrents
+  console.log("\nPhase 4: Cleaning up staging...\n");
+  for (const { key, config } of torrentsToProcess) {
+    const hash = extractInfoHash(config.magnetUri);
+    const state = progress.dataSets[hash];
+    if (state?.status === "complete") {
+      const dsDir = path.join(stagingDir, key);
+      const extractDir = path.join(stagingDir, `${key}-extracted`);
+      for (const dir of [dsDir, extractDir]) {
+        if (fs.existsSync(dir)) {
+          fs.rmSync(dir, { recursive: true, force: true });
+          console.log(`  Removed ${path.relative(DATA_DIR, dir)}`);
+        }
+      }
+    }
+  }
+  // Remove the magnets input file
+  const inputFile = path.join(stagingDir, "magnets.txt");
+  if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile);
 
   // Summary
   console.log("\n=== Torrent Download Summary ===");
