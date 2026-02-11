@@ -505,6 +505,7 @@ function PdfThumbnail({ docId }: { docId: number }) {
 }
 
 function isPdfDocument(doc: Document): boolean {
+  if (doc.sourceUrl?.toLowerCase().endsWith(".pdf")) return true;
   if (doc.mediaType?.toLowerCase() === "pdf") return true;
   if (doc.mimeType?.toLowerCase()?.includes("pdf")) return true;
   if (doc.title?.toLowerCase().endsWith(".pdf")) return true;
@@ -516,9 +517,9 @@ function isPdfDocument(doc: Document): boolean {
 function DocumentThumbnail({ doc }: { doc: Document }) {
   const mediaType = doc.mediaType?.toLowerCase() || "";
   const docType = doc.documentType?.toLowerCase() || "";
-  const isPhoto = mediaType === "photo" || mediaType === "image" || docType === "photograph";
-  const isVideo = mediaType === "video" || docType === "video";
   const isPdf = isPdfDocument(doc);
+  const isPhoto = !isPdf && (mediaType === "photo" || mediaType === "image" || docType === "photograph");
+  const isVideo = mediaType === "video" || docType === "video";
   const Icon = typeIcons[doc.documentType] || FileText;
 
   if (isPhoto) {

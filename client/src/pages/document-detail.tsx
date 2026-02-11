@@ -312,7 +312,8 @@ export default function DocumentDetailPage() {
 function DocumentViewer({ doc }: { doc: DocumentDetail }) {
   const mediaType = doc.mediaType?.toLowerCase() || "";
   const docType = doc.documentType?.toLowerCase() || "";
-  const isPhoto = mediaType === "photo" || mediaType === "image" || docType === "photograph";
+  const isPdf = doc.sourceUrl?.toLowerCase().endsWith(".pdf");
+  const isPhoto = !isPdf && (mediaType === "photo" || mediaType === "image" || docType === "photograph");
   const isVideo = mediaType === "video" || docType === "video";
 
   if (isPhoto) {
