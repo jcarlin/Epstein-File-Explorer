@@ -210,6 +210,12 @@ export async function registerRoutes(
       if (doc.r2Key && isR2Configured()) {
         try {
           const r2Resp = await getR2Stream(doc.r2Key);
+          // Avoid streaming very large files through the server — tell client to use /content-url
+          const STREAM_LIMIT = 10 * 1024 * 1024; // 10 MB
+          if (r2Resp.contentLength && r2Resp.contentLength > STREAM_LIMIT) {
+            r2Resp.body.destroy();
+            return res.status(413).json({ error: "File too large to stream", useContentUrl: true });
+          }
           res.setHeader("Content-Type", r2Resp.contentType || "application/pdf");
           if (r2Resp.contentLength) res.setHeader("Content-Length", String(r2Resp.contentLength));
           res.setHeader("Cache-Control", "private, max-age=3600");
@@ -307,6 +313,11 @@ export async function registerRoutes(
       if (doc.r2Key && isR2Configured()) {
         try {
           const r2Resp = await getR2Stream(doc.r2Key);
+          const STREAM_LIMIT = 10 * 1024 * 1024;
+          if (r2Resp.contentLength && r2Resp.contentLength > STREAM_LIMIT) {
+            r2Resp.body.destroy();
+            return res.status(413).json({ error: "File too large to stream", useContentUrl: true });
+          }
           res.setHeader("Content-Type", r2Resp.contentType || "image/jpeg");
           if (r2Resp.contentLength) res.setHeader("Content-Length", String(r2Resp.contentLength));
           res.setHeader("Cache-Control", "private, max-age=3600");
