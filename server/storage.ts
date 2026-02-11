@@ -13,7 +13,7 @@ import {
   type AIAnalysisListItem, type AIAnalysisAggregate, type AIAnalysisDocument,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ilike, or, sql, desc, asc, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, ilike, or, sql, desc, asc, inArray, isNotNull, ne } from "drizzle-orm";
 import { isR2Configured } from "./r2";
 
 export interface IStorage {
@@ -69,9 +69,11 @@ function escapeLikePattern(input: string): string {
   return input.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
-/** On production (R2 configured), only return documents that have been uploaded to R2. */
+/** On production (R2 configured), only return documents that have been uploaded to R2. Excludes empty files everywhere. */
 function r2Filter() {
-  return isR2Configured() ? isNotNull(documents.r2Key) : undefined;
+  const noEmpty = or(sql`${documents.fileSizeBytes} IS NULL`, ne(documents.fileSizeBytes, 0));
+  if (isR2Configured()) return and(isNotNull(documents.r2Key), noEmpty);
+  return noEmpty;
 }
 
 function createCache<T>(ttlMs: number) {
@@ -581,6 +583,7 @@ export class DatabaseStorage implements IStorage {
     const [doc] = await db.select().from(documents).where(eq(documents.id, id));
     if (!doc) return undefined;
     if (isR2Configured() && !doc.r2Key) return undefined;
+    if (doc.fileSizeBytes === 0) return undefined;
     return doc;
   }
 
