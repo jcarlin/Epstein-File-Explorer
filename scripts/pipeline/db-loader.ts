@@ -318,6 +318,12 @@ export async function loadAIResults(): Promise<{ persons: number; connections: n
           }
         }
       }
+      // --- Mark document as AI-analyzed ---
+      const efta = data.fileName.replace(/\.json$/i, "").replace(/\.pdf$/i, "");
+      await db.update(documents)
+        .set({ aiAnalysisStatus: "completed" })
+        .where(sql`${documents.title} ILIKE ${'%' + efta + '%'} OR ${documents.sourceUrl} ILIKE ${'%' + efta + '%'}`);
+
     } catch (error: any) {
       console.warn(`  Error processing ${file}: ${error.message}`);
     }
