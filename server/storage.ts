@@ -521,9 +521,12 @@ export class DatabaseStorage implements IStorage {
       .from(personDocuments)
       .innerJoin(documents, eq(personDocuments.documentId, documents.id))
       .where(
-        isR2Configured()
-          ? and(eq(personDocuments.personId, id), isNotNull(documents.r2Key))
-          : eq(personDocuments.personId, id)
+        (() => {
+          const r2Cond = r2Filter();
+          return r2Cond
+            ? and(eq(personDocuments.personId, id), r2Cond)
+            : eq(personDocuments.personId, id);
+        })()
       );
 
     const connsFrom = await db
