@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import OpenAI from "openai";
+import { getAIPriority } from "./media-classifier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -523,6 +524,8 @@ export async function runAIAnalysis(options: {
   limit?: number;
   skipExisting?: boolean;
   delayMs?: number;
+  minPriority?: number;
+  budget?: number;
 } = {}): Promise<AIAnalysisResult[]> {
   const {
     inputDir = EXTRACTED_DIR,
@@ -531,6 +534,8 @@ export async function runAIAnalysis(options: {
     limit,
     skipExisting = true,
     delayMs = 1500,
+    minPriority = 1,
+    budget,
   } = options;
 
   if (!fs.existsSync(outputDir)) {
@@ -541,8 +546,10 @@ export async function runAIAnalysis(options: {
   console.log(`Model: ${DEEPSEEK_MODEL}`);
   console.log(`Input: ${inputDir}`);
   console.log(`Output: ${outputDir}`);
+  console.log(`Min priority: ${minPriority}${budget ? `, Budget: ${budget} cents ($${(budget / 100).toFixed(2)})` : ""}`);
 
-  const docs: { file: string; dataSet: string; text: string; chars: number }[] = [];
+  // Phase 1: Scan for file paths only (no text loaded) to avoid OOM
+  const filePaths: { fullPath: string; file: string; dataSet: string }[] = [];
 
   function scanDir(dir: string) {
     if (!fs.existsSync(dir)) return;
@@ -552,31 +559,24 @@ export async function runAIAnalysis(options: {
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && entry.name.endsWith(".json")) {
-        try {
-          const data = JSON.parse(fs.readFileSync(fullPath, "utf-8"));
-          if (data.text && data.text.length >= minTextLength) {
-            const dsMatch = fullPath.match(/ds(\d+)/);
-            docs.push({
-              file: data.fileName || entry.name.replace(".json", ""),
-              dataSet: dsMatch ? dsMatch[1] : "unknown",
-              text: data.text,
-              chars: data.text.length,
-            });
-          }
-        } catch { }
+        const dsMatch = fullPath.match(/ds(\d+)/);
+        filePaths.push({
+          fullPath,
+          file: entry.name.replace(".json", ""),
+          dataSet: dsMatch ? dsMatch[1] : "unknown",
+        });
       }
     }
   }
 
   scanDir(inputDir);
-  docs.sort((a, b) => a.chars - b.chars);
+  console.log(`\nFound ${filePaths.length} extracted files on disk`);
 
-  const toProcess = limit ? docs.slice(0, limit) : docs;
-
+  // Phase 2: Filter out already-analyzed files
   let skipped = 0;
-  const docsToAnalyze = toProcess.filter(d => {
+  const candidates = filePaths.filter(f => {
     if (skipExisting) {
-      const outFile = path.join(outputDir, `${d.file}.json`);
+      const outFile = path.join(outputDir, `${f.file}.json`);
       if (fs.existsSync(outFile)) {
         skipped++;
         return false;
@@ -585,20 +585,48 @@ export async function runAIAnalysis(options: {
     return true;
   });
 
-  console.log(`\nFound ${docs.length} documents with ${minTextLength}+ chars of text`);
-  console.log(`Processing: ${docsToAnalyze.length} (skipping ${skipped} already analyzed)`);
+  const toProcess = limit ? candidates.slice(0, limit) : candidates;
+  console.log(`To analyze: ${toProcess.length} (skipping ${skipped} already analyzed, limit: ${limit ?? "none"})`);
 
+  // Phase 3: Process one at a time, loading text lazily
   const results: AIAnalysisResult[] = [];
   let processed = 0;
   let totalPersons = 0;
   let totalConnections = 0;
   let totalEvents = 0;
+  let skippedShort = 0;
+  let skippedPriority = 0;
+  let totalCostCents = 0;
 
-  for (const doc of docsToAnalyze) {
+  for (const entry of toProcess) {
+    // Budget check
+    if (budget && totalCostCents >= budget) {
+      console.log(`\n  Budget cap reached: ${totalCostCents.toFixed(2)} / ${budget} cents`);
+      break;
+    }
+
     try {
-      const { result } = await analyzeDocumentWithTokens(doc.text, doc.file, doc.dataSet);
+      const data = JSON.parse(fs.readFileSync(entry.fullPath, "utf-8"));
+      const fileName = data.fileName || entry.file;
+      if (!data.text || data.text.length < minTextLength) {
+        skippedShort++;
+        continue;
+      }
 
-      const outFile = path.join(outputDir, `${doc.file}.json`);
+      // Priority check — compute from data set and file size
+      const fileSizeBytes = data.fileSizeBytes ?? null;
+      const mediaType = data.fileType?.toLowerCase().includes("pdf") ? "pdf" as const : "pdf" as const;
+      const priority = getAIPriority(entry.dataSet, fileSizeBytes, mediaType);
+      if (priority < minPriority) {
+        skippedPriority++;
+        continue;
+      }
+
+      const { result, inputTokens, outputTokens } = await analyzeDocumentWithTokens(data.text, fileName, entry.dataSet);
+      const costCents = (inputTokens / 1_000_000) * DEEPSEEK_INPUT_COST_PER_M + (outputTokens / 1_000_000) * DEEPSEEK_OUTPUT_COST_PER_M;
+      totalCostCents += costCents;
+
+      const outFile = path.join(outputDir, `${fileName}.json`);
       fs.writeFileSync(outFile, JSON.stringify(result, null, 2));
 
       results.push(result);
@@ -608,14 +636,14 @@ export async function runAIAnalysis(options: {
       totalEvents += result.events.length;
 
       const personNames = result.persons.map(p => p.name).slice(0, 5).join(", ");
-      console.log(`  [${processed}/${docsToAnalyze.length}] ${doc.file}: ${result.persons.length} persons, ${result.connections.length} connections, ${result.events.length} events`);
+      console.log(`  [${processed}/${toProcess.length}] ${fileName} (pri ${priority}): ${result.persons.length} persons, ${result.connections.length} connections, ${result.events.length} events [${costCents.toFixed(3)}¢, total: ${totalCostCents.toFixed(2)}¢]`);
       if (personNames) console.log(`    People: ${personNames}${result.persons.length > 5 ? "..." : ""}`);
 
-      if (processed < docsToAnalyze.length) {
+      if (processed < toProcess.length) {
         await sleep(delayMs);
       }
     } catch (error: any) {
-      console.error(`  Error processing ${doc.file}: ${error.message}`);
+      console.error(`  Error processing ${entry.file}: ${error.message}`);
       if (error.message?.includes("429")) {
         console.log("  Rate limited, waiting 30s...");
         await sleep(30000);
@@ -623,11 +651,15 @@ export async function runAIAnalysis(options: {
     }
   }
 
+  if (skippedShort > 0) console.log(`Skipped ${skippedShort} files with < ${minTextLength} chars of text`);
+  if (skippedPriority > 0) console.log(`Skipped ${skippedPriority} files below priority ${minPriority}`);
+
   console.log("\n=== AI Analysis Summary ===");
   console.log(`Documents analyzed: ${processed}`);
   console.log(`Total persons found: ${totalPersons}`);
   console.log(`Total connections found: ${totalConnections}`);
   console.log(`Total events found: ${totalEvents}`);
+  console.log(`Total cost: ${totalCostCents.toFixed(2)} cents ($${(totalCostCents / 100).toFixed(4)})`);
   console.log(`Output directory: ${outputDir}`);
 
   return results;
@@ -644,6 +676,10 @@ if (process.argv[1]?.includes(path.basename(__filename))) {
       options.minTextLength = parseInt(args[++i], 10);
     } else if (args[i] === "--delay" && args[i + 1]) {
       options.delayMs = parseInt(args[++i], 10);
+    } else if (args[i] === "--priority" && args[i + 1]) {
+      options.minPriority = parseInt(args[++i], 10);
+    } else if (args[i] === "--budget" && args[i + 1]) {
+      options.budget = parseInt(args[++i], 10);
     } else if (args[i] === "--no-skip") {
       options.skipExisting = false;
     }

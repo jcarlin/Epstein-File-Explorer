@@ -189,6 +189,8 @@ async function runStage(stage: string, config: PipelineConfig): Promise<void> {
         await runAIAnalysis({
           limit: config.batchSize,
           delayMs: config.concurrency && config.concurrency > 1 ? 500 : 1500,
+          minPriority: config.priority ?? 1,
+          budget: config.budget,
         });
         break;
 
