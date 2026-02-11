@@ -683,6 +683,8 @@ export async function importDownloadedFiles(downloadDir?: string): Promise<numbe
         ? "video"
         : [".jpg", ".jpeg", ".png", ".gif"].includes(ext)
         ? "photograph"
+        : ext === ".pdf"
+        ? "government record"
         : inferDocumentType(dsDesc);
       const fileTypeTag = ext === ".pdf" ? "PDF" : ext.replace(".", "").toUpperCase();
 

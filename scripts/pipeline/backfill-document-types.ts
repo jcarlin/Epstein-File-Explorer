@@ -105,7 +105,7 @@ async function main() {
         .where(
           and(
             eq(documents.eftaNumber, eftaNumber),
-            eq(documents.documentType, "government record"),
+            sql`${documents.documentType} IN ('government record', 'photograph')`,
           ),
         )
         .returning({ id: documents.id });
